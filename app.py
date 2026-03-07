@@ -16,36 +16,16 @@ class TodoList(Widget):
     can_focus = True
 
     BINDINGS = [
-        Binding("h", "left"),
-        Binding("j", "down"),
-        Binding("k", "up"),
-        Binding("l", "right"),
-        Binding("space", "watch_calendar", "Calendar"),
+        Binding("j", "cursor_down"),
+        Binding("k", "cursor_up"),
     ]
 
     def compose(self) -> ComposeResult:
         self.task_list = ListView()
+        self.task_input = Input(placeholder="Add task and press Enter")
+        self.task_list.styles.height = "71%"
         yield self.task_list
-
-    def action_left(self):
-        pass
-        # self.cursor -= timedelta(days=1)
-        # self.render_calendar()
-
-    def action_right(self):
-        pass
-        # self.cursor += timedelta(days=1)
-        # self.render_calendar()
-
-    def action_up(self):
-        pass
-        # self.cursor -= timedelta(days=7)
-        # self.render_calendar()
-
-    def action_down(self):
-        pass
-        # self.cursor += timedelta(days=7)
-        # self.render_calendar()
+        yield self.task_input
 
     def clear(self):
         self.task_list.clear()
@@ -59,11 +39,6 @@ class Calendar(Widget):
 
     can_focus = True
 
-    CSS = """
-    Lavel {
-        dock: bottom;
-    }
-    """
     BINDINGS = [
         Binding("h", "left"),
         Binding("j", "down"),
@@ -73,7 +48,6 @@ class Calendar(Widget):
         Binding("K", "up_month", "next month"),
         Binding("t", "return_today", "today"),
         Binding("a", "add_task", "Add a task"),
-        Binding("space", "watch_todolist", "Todo list"),
         Binding("q", "quit", show=False),
     ]
 
@@ -85,10 +59,8 @@ class Calendar(Widget):
     def compose(self) -> ComposeResult:
         self.label = Label()
         self.task_list = TodoList()
-        self.task_input = Input(placeholder="Add task and press Enter")
         yield self.label
         yield self.task_list
-        yield self.task_input
 
     def on_mount(self):
         self.render_calendar()
@@ -104,14 +76,24 @@ class Calendar(Widget):
             for day in week:
                 if day == 0:
                     line.append("  ")
-                elif day == self.cursor.day:
-                    line.append(f"[reverse]{day:2}[/]")
                 else:
-                    line.append(f"{day:2}")
+                    current_day = date(self.cursor.year, self.cursor.month, day)
+                    has_tasks = current_day in self.todos and self.todos[current_day]
+
+                    if day == self.cursor.day:
+                        style = "reverse"
+                        if has_tasks:
+                            style += " bold orange"  # current day with tasks
+                        line.append(f"[{style}]{day:2}[/{style}]")
+                    else:
+                        if has_tasks:
+                            line.append(f"[bold orange]{day:2}[/bold orange]")
+                        else:
+                            line.append(f"{day:2}")
             lines.append(" ".join(line))
 
         tasks = self.todos.get(self.cursor, [])
-        task_items = [ListItem(Label(f"- {task}")) for task in tasks]
+        task_items = [ListItem(Label(f"O {task}")) for task in tasks]
         if not tasks:
             task_items = [ListItem(Label("[italic]No tasks for this day.[/]"))]
 
@@ -152,18 +134,15 @@ class Calendar(Widget):
         self.render_calendar()
 
     def action_add_task(self):
-        self.task_input.focus()
+        self.task_list.task_input.focus()
 
     def on_input_submitted(self, event: Input.Submitted):
         task = event.value.strip()
         if task:
             self.todos.setdefault(self.cursor, []).append(task)
-        self.task_input.value = ""
+        self.task_list.task_input.value = ""
         self.focus()
         self.render_calendar()
-
-    def action_watch_todo(self):
-        self.task_list.focus()
 
 
 class CalendarApp(App):
@@ -174,7 +153,7 @@ class CalendarApp(App):
     SUB_TITLE = date.today().strftime("%d %B %y")
 
     BINDINGS = [
-        Binding("q", "quit", "Quit", show=False),
+        Binding("q", "quit", "Quit"),
     ]
 
     def compose(self) -> ComposeResult:
