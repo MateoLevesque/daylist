@@ -1,0 +1,190 @@
+import calendar as c
+from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
+
+from textual.app import App, ComposeResult
+from textual.widget import Widget
+from textual.widgets import Footer, Header, Label, Input
+from textual.binding import Binding
+from textual.containers import Horizontal
+
+
+class Calendar(Widget):
+    """Calendar widget"""
+
+    can_focus = True
+
+    BINDINGS = [
+        Binding("h", "prev_day"),
+        Binding("j", "next_week"),
+        Binding("k", "prev_week"),
+        Binding("l", "next_day"),
+        Binding("J", "next_month", "next month"),
+        Binding("K", "prev_month", "prev month"),
+        Binding("t", "go_today", "today"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        self.prev_month_cal = Label(classes="hint_cal")
+        self.calendar_label = Label(id="calendar_label")
+        self.next_month_cal = Label(classes="hint_cal")
+
+        yield self.prev_month_cal
+        yield self.calendar_label
+        yield self.next_month_cal
+
+    def on_mount(self):
+        self.cursor = date.today()
+        self.todos = {}  # Format {date: [tasks]}
+        self.cal = c.Calendar()
+        self.render_calendars()
+
+    def build_month(self, year: int, month: int, show_cursor=False) -> str:
+        cal = self.cal.monthdayscalendar(year, month)
+
+        # build header
+        if show_cursor:
+            header = f"[bold orange]{c.month_name[month]} {year}[/bold orange]\nMo Tu We Th Fr Sa Su\n"
+        else:
+            header = f"{c.month_name[month]} {year}\nMo Tu We Th Fr Sa Su\n"
+        lines = []
+
+        # build month
+        for week in cal:
+            line = []
+            for day in week:
+                if day == 0:
+                    line.append("  ")
+                else:
+                    current_day = date(year, month, day)
+                    has_tasks = bool(self.todos.get(current_day))
+
+                    if show_cursor and day == self.cursor.day:
+                        style = "reverse orange"
+                        if has_tasks:
+                            style += " italic"
+                        line.append(f"[{style}]{day:2}[/{style}]")
+                    else:
+                        if has_tasks:
+                            line.append(f"[italic]{day:2}[/italic]")
+                        else:
+                            line.append(f"{day:2}")
+            lines.append(" ".join(line))
+
+        return header + "\n".join(lines)
+
+    def render_calendars(self):
+        # Add tasks logic !!! TO VERIFY
+        self.calendar_label.update(
+            self.build_month(self.cursor.year, self.cursor.month, True)
+        )
+        self.render_hint_cals()
+
+    def render_hint_cals(self):
+        prev_month = self.cursor.month - 1
+        prev_year = self.cursor.year
+        if prev_month < 1:
+            prev_month = 12
+            prev_year -= 1
+
+        next_month = self.cursor.month + 1
+        next_year = self.cursor.year
+        if next_month > 12:
+            next_month = 1
+            next_year += 1
+
+        self.prev_month_cal.update(self.build_month(prev_year, prev_month))
+        self.next_month_cal.update(self.build_month(next_year, next_month))
+
+    def action_prev_day(self):
+        self.cursor -= timedelta(days=1)
+        self.render_calendars()
+
+    def action_next_day(self):
+        self.cursor += timedelta(days=1)
+        self.render_calendars()
+
+    def action_prev_week(self):
+        self.cursor -= timedelta(days=7)
+        self.render_calendars()
+
+    def action_next_week(self):
+        self.cursor += timedelta(days=7)
+        self.render_calendars()
+
+    def action_prev_month(self):
+        self.cursor -= relativedelta(months=1)
+        self.render_calendars()
+
+    def action_next_month(self):
+        self.cursor += relativedelta(months=1)
+        self.render_calendars()
+
+    def action_go_today(self):
+        self.cursor = date.today()
+        self.render_calendars()
+
+
+class Todolist(Widget):
+    """Todolist widget"""
+
+    can_focus = True
+
+    BINDINGS = []
+
+    def compose(self) -> ComposeResult:
+        self.task_input = Input(
+            id="task_input", placeholder="Add a task then press Enter..."
+        )
+        yield self.task_input
+
+    def on_mount(self):
+        pass
+
+    def action_focus_input(self):
+        self.task_input.focus()
+
+    def on_input_submitted(self, event: Input.Submitted):
+        self.focus()
+
+
+class CalendarApp(App):
+    """Calendar App"""
+
+    CSS_PATH = "calendar.tcss"
+    TITLE = date.today().strftime("%A")
+    SUB_TITLE = date.today().strftime("%d %B %y")
+
+    BINDINGS = [
+        Binding("q", "quit"),
+        Binding("v", "change_focus", "change focus"),
+        Binding("a", "add_task", "add task"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the app."""
+        yield Header()
+        yield Horizontal(
+            Calendar(id="calendar"),
+            Todolist(id="todolist"),
+        )
+        yield Footer()
+
+    def on_mount(self):
+        self.calendar_id = self.query_one("#calendar")
+        self.todolist_id = self.query_one("#todolist")
+        self.calendar_id.focus()
+        self.theme = "flexoki"
+
+    def action_change_focus(self):
+        if self.calendar_id.has_focus:
+            self.todolist_id.focus()
+        else:
+            self.calendar_id.focus()
+
+    def action_add_task(self):
+        self.query_one(Todolist).action_focus_input()
+
+
+if __name__ == "__main__":
+    CalendarApp().run()
