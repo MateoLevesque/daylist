@@ -1,21 +1,178 @@
-from datetime import date
-
 from textual.app import App, ComposeResult
-from textual.widgets import Footer, Header
-from textual.binding import Binding
+from textual.widgets import Header, Footer
 from textual.containers import Horizontal
+from textual.binding import Binding
+
+import calendar as c
+from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
+
 from textual.message import Message
+from textual.widget import Widget
+from textual.widgets import Label
 
-# import widgets
-from widgets.calendar_widget import Calendar
-from widgets.todolist_widget import Todolist
+from textual.widgets import Input, ListView, ListItem
 
 
-class TaskAdded(Message):
-    def __init__(self, date, task):
-        self.date = date
-        self.task = task
-        super().__init__()
+class Todolist(Widget):
+    """Todolist widget"""
+
+    class TaskAdded(Message):
+        def __init__(self, date: date, task: str):
+            self.date = date
+            self.task = task
+            super().__init__()
+
+    can_focus = True
+
+    BINDINGS = [
+        Binding("j", "next_task"),
+        Binding("k", "prev_task"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        self.task_input = Input(
+            placeholder="Add a task then press Enter...",
+            id="task_input",
+        )
+
+        self.task_list = ListView(id="task_list")
+
+        yield self.task_input
+        yield self.task_list
+
+    def on_mount(self):
+        self.cursor = date.today()
+        self.render_tasks(self.app.tasks.get(self.cursor, []))
+
+    def focus_input(self):
+        self.task_input.focus()
+
+    def render_tasks(self, tasks):
+        self.task_list.clear()
+
+        if tasks:
+            items = [ListItem(Label(task)) for task in tasks]
+        else:
+            items = [ListItem(Label("[italic]No tasks for this day[/italic]"))]
+
+        for item in items:
+            self.task_list.mount(item)
+
+    def on_input_submitted(self, event: Input.Submitted):
+
+        task = event.value.strip()
+
+        if not task:
+            event.input.value = ""
+            return
+
+        self.post_message(self.TaskAdded(self.cursor, task))
+
+        event.input.value = ""
+
+
+class Calendar(Widget):
+    """Calendar widget"""
+
+    class CursorMoved(Message):
+        def __init__(self, cursor: date):
+            self.cursor = cursor
+            super().__init__()
+
+    can_focus = True
+
+    BINDINGS = [
+        Binding("h", "prev_day"),
+        Binding("j", "next_week"),
+        Binding("k", "prev_week"),
+        Binding("l", "next_day"),
+        Binding("J", "next_month"),
+        Binding("K", "prev_month"),
+        Binding("t", "go_today"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        self.prev_month = Label(classes="hint_cal")
+        self.main_calendar = Label(id="calendar_label")
+        self.next_month = Label(classes="hint_cal")
+
+        yield self.prev_month
+        yield self.main_calendar
+        yield self.next_month
+
+    def on_mount(self):
+        self.cursor = date.today()
+        self.cal = c.Calendar()
+        self.render_all()
+
+    def build_month(self, year: int, month: int, highlight_cursor=False):
+
+        cal = self.cal.monthdayscalendar(year, month)
+
+        header = f"{c.month_name[month]} {year}\nMo Tu We Th Fr Sa Su\n"
+
+        lines = []
+
+        for week in cal:
+            line = []
+
+            for day in week:
+                if day == 0:
+                    line.append("  ")
+                    continue
+
+                if highlight_cursor and day == self.cursor.day:
+                    line.append(f"[reverse orange]{day:2}[/reverse orange]")
+                else:
+                    line.append(f"{day:2}")
+
+            lines.append(" ".join(line))
+
+        return header + "\n".join(lines)
+
+    def render_all(self):
+
+        self.main_calendar.update(
+            self.build_month(self.cursor.year, self.cursor.month, True)
+        )
+
+        prev_date = self.cursor - relativedelta(months=1)
+        next_date = self.cursor + relativedelta(months=1)
+
+        self.prev_month.update(self.build_month(prev_date.year, prev_date.month))
+
+        self.next_month.update(self.build_month(next_date.year, next_date.month))
+
+        self.post_message(self.CursorMoved(self.cursor))
+
+    def move_cursor(self, delta):
+        self.cursor += delta
+        self.render_all()
+
+    def action_prev_day(self):
+        self.move_cursor(timedelta(days=-1))
+
+    def action_next_day(self):
+        self.move_cursor(timedelta(days=1))
+
+    def action_prev_week(self):
+        self.move_cursor(timedelta(days=-7))
+
+    def action_next_week(self):
+        self.move_cursor(timedelta(days=7))
+
+    def action_prev_month(self):
+        self.cursor -= relativedelta(months=1)
+        self.render_all()
+
+    def action_next_month(self):
+        self.cursor += relativedelta(months=1)
+        self.render_all()
+
+    def action_go_today(self):
+        self.cursor = date.today()
+        self.render_all()
 
 
 class CalendarApp(App):
@@ -28,42 +185,58 @@ class CalendarApp(App):
     BINDINGS = [
         Binding("q", "quit"),
         Binding("v", "change_focus", "change focus"),
-        Binding("a", "add_task", "add task"),
+        Binding("a", "focus_input", "add task"),
     ]
 
-    tasks: dict = {
-        date(2026, 3, 10): ["test"],
-        date(2026, 4, 15): ["test"],
-    }
+    def __init__(self):
+        super().__init__()
+
+        self.tasks: dict[date, list[str]] = {
+            date(2026, 3, 9): ["test", "chenille"],
+            date(2026, 4, 15): ["test"],
+        }
+
+        self.current_day = date.today()
 
     def compose(self) -> ComposeResult:
-        """Create child widgets for the app."""
+        self.todolist = Todolist(id="todolist")
+        self.calendar = Calendar(id="calendar")
         yield Header()
-        yield Horizontal(
-            Calendar(id="calendar"),
-            Todolist(id="todolist"),
-        )
+        yield Horizontal(self.calendar, self.todolist)
         yield Footer()
 
     def on_mount(self):
-        self.calendar_id = self.query_one("#calendar")
-        self.todolist_id = self.query_one("#todolist")
-        self.calendar_id.focus()
+        self.calendar.focus()
 
-        self.theme = "flexoki"
+        tasks = self.tasks.get(self.current_day, [])
+        self.update_tasks(self.current_day, tasks)
+
+    def update_tasks(self, date, tasks):
+
+        self.todolist.cursor = date
+        self.todolist.render_tasks(tasks)
 
     def action_change_focus(self):
-        if self.calendar_id.has_focus:
-            self.todolist_id.focus()
+        if self.calendar.has_focus:
+            self.todolist.focus()
         else:
-            self.calendar_id.focus()
+            self.calendar.focus()
 
-    def action_add_task(self):
-        self.query_one(Todolist).action_focus_input()
+    def action_focus_input(self):
+        self.todolist.focus_input()
 
-    def on_task_added(self, message: TaskAdded):
+    def on_calendar_cursor_moved(self, message: Calendar.CursorMoved):
+        self.current_day = message.cursor
+        tasks = self.tasks.get(self.current_day, [])
+        self.update_tasks(self.current_day, tasks)
+
+    def on_todolist_task_added(self, message: Todolist.TaskAdded):
         self.tasks.setdefault(message.date, []).append(message.task)
-        self.query_one(Calendar).render_calendars()
+
+        tasks = self.tasks[message.date]
+
+        self.update_tasks(message.date, tasks)
+        self.calendar.focus()
 
 
 if __name__ == "__main__":

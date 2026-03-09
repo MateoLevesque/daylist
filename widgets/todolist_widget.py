@@ -1,39 +1,73 @@
+from datetime import date
+from re import M
+
 from textual.app import ComposeResult
+from textual.message import Message
 from textual.widget import Widget
-from textual.widgets import Input
+from textual.widgets import Input, ListView, ListItem, Label
 from textual.binding import Binding
+
+from messages import TasksUpdated
 
 
 class Todolist(Widget):
     """Todolist widget"""
 
+    class TaskAdded(Message):
+        def __init__(self, date: date, task: str):
+            self.date = date
+            self.task = task
+            super().__init__()
+
     can_focus = True
 
-    BINDINGS = []
+    BINDINGS = [
+        Binding("j", "next_task"),
+        Binding("k", "prev_task"),
+    ]
 
     def compose(self) -> ComposeResult:
         self.task_input = Input(
-            id="task_input", placeholder="Add a task then press Enter..."
+            placeholder="Add a task then press Enter...",
+            id="task_input",
         )
+
+        self.task_list = ListView(id="task_list")
+
         yield self.task_input
+        yield self.task_list
 
     def on_mount(self):
-        pass
+        self.cursor = date.today()
+        self.render_tasks(self.app.tasks.get(self.cursor, []))
 
-    def action_focus_input(self):
+    def focus_input(self):
         self.task_input.focus()
 
-    def on_input_submitted(self, event: Input.Submitted):
-        task = event.value
-        calendar = self.app.query_one(Calendar)
-        date = calendar.cursor
+    def render_tasks(self, tasks):
+        self.task_list.clear()
 
-        if not task.strip():
+        if tasks:
+            items = [ListItem(Label(task)) for task in tasks]
+        else:
+            items = [ListItem(Label("[italic]No tasks for this day[/italic]"))]
+
+        for item in items:
+            self.task_list.mount(item)
+
+    def on_input_submitted(self, event: Input.Submitted):
+
+        task = event.value.strip()
+
+        if not task:
             event.input.value = ""
-            calendar.focus()
             return
 
-        self.post_message(TaskAdded(date, task))
+        self.post_message(self.TaskAdded(self.cursor, task))
+
         event.input.value = ""
-        calendar.render_calendars()
-        calendar.focus()
+
+    def on_tasks_updated(self, message: TasksUpdated):
+
+        self.cursor = message.date
+        self.render_tasks(message.tasks)
