@@ -1,3 +1,4 @@
+import re
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer
 from textual.containers import Horizontal
@@ -6,6 +7,10 @@ from textual.binding import Binding
 import calendar as c
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
+
+from platformdirs import user_data_dir
+from pathlib import Path
+import json
 
 from textual.message import Message
 from textual.widget import Widget
@@ -192,20 +197,17 @@ class CalendarApp(App):
     CSS_PATH = "style/styles.tcss"
     TITLE = date.today().strftime("%A")
     SUB_TITLE = date.today().strftime("%d %B %y")
+    APP_NAME = "koolkal"
 
     BINDINGS = [
-        Binding("q", "quit"),
+        Binding("q", "save_quit"),
         Binding("v", "change_focus", "change focus"),
         Binding("a", "focus_input", "add task"),
     ]
 
     def __init__(self):
         super().__init__()
-
-        self.tasks: dict[date, list[str]] = {
-            date(2026, 3, 13): ["test", "chenille"],
-            date(2026, 4, 15): ["test"],
-        }
+        self.tasks: dict[date, list[str]] = self.load_data()
 
         self.current_day = date.today()
 
@@ -223,6 +225,31 @@ class CalendarApp(App):
         tasks = self.tasks.get(self.current_day, [])
         self.update_tasks(self.current_day, tasks)
 
+    def get_data_dir(self) -> Path:
+        data_dir = Path(user_data_dir("koolkal"))
+        data_dir.mkdir(parents=True, exist_ok=True)
+        save_file = "tasks.json"
+        return data_dir / save_file
+
+    def load_data(self):
+        file_path = self.get_data_dir()
+
+        if not file_path.exists():
+            return {}
+
+        with open(file_path, "r") as f:
+            raw = json.load(f)
+
+        return {date.fromisoformat(d): tasks for d, tasks in raw.items()}
+
+    def write_data(self, data):
+        file_path = self.get_data_dir()
+
+        serializable = {d.isoformat(): tasks for d, tasks in data.items()}
+
+        with open(file_path, "w") as f:
+            json.dump(serializable, f, indent=2)
+
     def update_tasks(self, date, tasks):
 
         self.todolist.cursor = date
@@ -234,6 +261,10 @@ class CalendarApp(App):
             self.todolist.focus()
         else:
             self.calendar.focus()
+
+    def action_save_quit(self):
+        self.write_data(self.tasks)
+        self.exit()
 
     def action_focus_input(self):
         self.todolist.focus_input()
