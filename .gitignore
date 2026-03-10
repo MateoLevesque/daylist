@@ -1,2 +1,5 @@
 # Ignore python venv
 .venv/
+
+*.pyc
+*.pyo
