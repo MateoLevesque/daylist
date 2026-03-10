@@ -43,7 +43,6 @@ class Todolist(Widget):
 
     def on_mount(self):
         self.cursor = date.today()
-        self.render_tasks(self.app.tasks.get(self.cursor, []))
 
     def focus_input(self):
         self.task_input.focus()
@@ -104,9 +103,8 @@ class Calendar(Widget):
     def on_mount(self):
         self.cursor = date.today()
         self.cal = c.Calendar()
-        self.render_all()
 
-    def build_month(self, year: int, month: int, highlight_cursor=False):
+    def build_month(self, year: int, month: int, tasks, highlight_cursor=False):
 
         cal = self.cal.monthdayscalendar(year, month)
 
@@ -116,39 +114,52 @@ class Calendar(Widget):
 
         for week in cal:
             line = []
-
             for day in week:
                 if day == 0:
                     line.append("  ")
                     continue
 
-                if highlight_cursor and day == self.cursor.day:
-                    line.append(f"[reverse orange]{day:2}[/reverse orange]")
+                current_day = date(year, month, day)
+                has_tasks = current_day in tasks and tasks[current_day]
+
+                is_cursor = (
+                    highlight_cursor
+                    and year == self.cursor.year
+                    and month == self.cursor.month
+                    and day == self.cursor.day
+                )
+
+                if is_cursor:
+                    if has_tasks:
+                        line.append(f"[reverse orange italic]{day:2}[/]")
+                    else:
+                        line.append(f"[reverse orange]{day:2}[/]")
                 else:
-                    line.append(f"{day:2}")
+                    if has_tasks:
+                        line.append(f"[italic orange]{day:2}[/]")
+                    else:
+                        line.append(f"{day:2}")
 
             lines.append(" ".join(line))
 
         return header + "\n".join(lines)
 
-    def render_all(self):
+    def render_all(self, tasks):
 
         self.main_calendar.update(
-            self.build_month(self.cursor.year, self.cursor.month, True)
+            self.build_month(self.cursor.year, self.cursor.month, tasks, True)
         )
 
         prev_date = self.cursor - relativedelta(months=1)
         next_date = self.cursor + relativedelta(months=1)
 
-        self.prev_month.update(self.build_month(prev_date.year, prev_date.month))
+        self.prev_month.update(self.build_month(prev_date.year, prev_date.month, tasks))
 
-        self.next_month.update(self.build_month(next_date.year, next_date.month))
-
-        self.post_message(self.CursorMoved(self.cursor))
+        self.next_month.update(self.build_month(next_date.year, next_date.month, tasks))
 
     def move_cursor(self, delta):
         self.cursor += delta
-        self.render_all()
+        self.post_message(self.CursorMoved(self.cursor))
 
     def action_prev_day(self):
         self.move_cursor(timedelta(days=-1))
@@ -164,15 +175,15 @@ class Calendar(Widget):
 
     def action_prev_month(self):
         self.cursor -= relativedelta(months=1)
-        self.render_all()
+        self.post_message(self.CursorMoved(self.cursor))
 
     def action_next_month(self):
         self.cursor += relativedelta(months=1)
-        self.render_all()
+        self.post_message(self.CursorMoved(self.cursor))
 
     def action_go_today(self):
         self.cursor = date.today()
-        self.render_all()
+        self.post_message(self.CursorMoved(self.cursor))
 
 
 class CalendarApp(App):
@@ -192,7 +203,7 @@ class CalendarApp(App):
         super().__init__()
 
         self.tasks: dict[date, list[str]] = {
-            date(2026, 3, 9): ["test", "chenille"],
+            date(2026, 3, 13): ["test", "chenille"],
             date(2026, 4, 15): ["test"],
         }
 
@@ -207,6 +218,7 @@ class CalendarApp(App):
 
     def on_mount(self):
         self.calendar.focus()
+        self.theme = "flexoki"
 
         tasks = self.tasks.get(self.current_day, [])
         self.update_tasks(self.current_day, tasks)
@@ -215,6 +227,7 @@ class CalendarApp(App):
 
         self.todolist.cursor = date
         self.todolist.render_tasks(tasks)
+        self.calendar.render_all(self.tasks)
 
     def action_change_focus(self):
         if self.calendar.has_focus:
