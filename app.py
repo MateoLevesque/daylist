@@ -1,9 +1,3 @@
-import re
-from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer
-from textual.containers import Horizontal
-from textual.binding import Binding
-
 import calendar as c
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
@@ -12,11 +6,12 @@ from platformdirs import user_data_dir
 from pathlib import Path
 import json
 
+from textual.app import App, ComposeResult
 from textual.message import Message
 from textual.widget import Widget
-from textual.widgets import Label
-
-from textual.widgets import Input, ListView, ListItem
+from textual.widgets import Header, Footer, Label, Input, ListItem, ListView
+from textual.containers import Horizontal
+from textual.binding import Binding
 
 
 class Todolist(Widget):
@@ -197,7 +192,7 @@ class CalendarApp(App):
     CSS_PATH = "style/styles.tcss"
     TITLE = date.today().strftime("%A")
     SUB_TITLE = date.today().strftime("%d %B %y")
-    APP_NAME = "koolkal"
+    APP_NAME = "daylist"
 
     BINDINGS = [
         Binding("q", "save_quit"),
