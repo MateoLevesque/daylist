@@ -2,6 +2,9 @@
 Daylist is a simple and easy to use daily task manager TUI with vim motions.
 The name is from the combinaison of *daily* and *list*.
 
+> [!TIP]
+> I'm actively looking for feeback on this project. If you have any features you'd like to be added or any tips to improve the code, the UX or anything, feel free to share it wth me.
+
 ## Main features
 - Simple month view where you can move trough the days using `hjkl`.
 - Move trough months with `JK`
