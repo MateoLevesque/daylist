@@ -54,10 +54,6 @@ class Todolist(Widget):
     def on_input_submitted(self, event: Input.Submitted):
         task = event.value.strip()
 
-        if not task:
-            event.input.value = ""
-            return
-
         self.post_message(self.TaskAdded(self.cursor, task))
 
         event.input.value = ""

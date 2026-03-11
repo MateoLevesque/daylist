@@ -17,9 +17,10 @@ class CalendarApp(App):
     """Calendar App"""
 
     CSS_PATH = "style/styles.tcss"
+
+    APP_NAME = "daylist"
     TITLE = date.today().strftime("%A")
     SUB_TITLE = date.today().strftime("%d %B %y")
-    APP_NAME = "daylist"
 
     BINDINGS = [
         Binding("q", "save_quit"),
@@ -105,6 +106,10 @@ class CalendarApp(App):
         self.update_tasks(self.cursor, tasks_for_widgets)
 
     def on_todolist_task_added(self, message: Todolist.TaskAdded):
+        if not message.task:
+            self.calendar.focus()
+            return
+
         self.tasks.setdefault(message.date, []).append(message.task)
 
         tasks_for_widgets = self.tasks[message.date]
