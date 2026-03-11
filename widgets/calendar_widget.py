@@ -6,7 +6,7 @@ from textual.widgets import Label
 
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
-import calendar as c
+import calendar
 
 
 class Calendar(Widget):
@@ -24,33 +24,32 @@ class Calendar(Widget):
         Binding("j", "next_week"),
         Binding("k", "prev_week"),
         Binding("l", "next_day"),
-        Binding("J", "next_month"),
-        Binding("K", "prev_month"),
-        Binding("t", "go_today"),
+        Binding("J", "next_month", "next month"),
+        Binding("K", "prev_month", "prev month"),
+        Binding("t", "go_today", "return to today"),
     ]
 
     def compose(self) -> ComposeResult:
-        self.prev_month = Label(classes="hint_cal")
+        self.prev_month_label = Label(classes="hint_cal")
         self.main_calendar = Label(id="calendar_label")
-        self.next_month = Label(classes="hint_cal")
+        self.next_month_label = Label(classes="hint_cal")
 
-        yield self.prev_month
+        yield self.prev_month_label
         yield self.main_calendar
-        yield self.next_month
+        yield self.next_month_label
 
     def on_mount(self):
         self.cursor = date.today()
-        self.cal = c.Calendar()
+        self.cal = calendar.Calendar()
 
     def build_month(self, year: int, month: int, tasks, highlight_cursor=False):
+        temporary_calendar = self.cal.monthdayscalendar(year, month)
 
-        cal = self.cal.monthdayscalendar(year, month)
-
-        header = f"{c.month_name[month]} {year}\nMo Tu We Th Fr Sa Su\n"
+        header = f"{calendar.month_name[month]} {year}\nMo Tu We Th Fr Sa Su\n"
 
         lines = []
 
-        for week in cal:
+        for week in temporary_calendar:
             line = []
             for day in week:
                 if day == 0:
@@ -58,6 +57,7 @@ class Calendar(Widget):
                     continue
 
                 current_day = date(year, month, day)
+
                 has_tasks = current_day in tasks and tasks[current_day]
 
                 is_cursor = (
@@ -67,23 +67,25 @@ class Calendar(Widget):
                     and day == self.cursor.day
                 )
 
-                if is_cursor:
-                    if has_tasks:
-                        line.append(f"[reverse orange italic]{day:2}[/]")
-                    else:
-                        line.append(f"[reverse orange]{day:2}[/]")
-                else:
-                    if has_tasks:
-                        line.append(f"[italic orange]{day:2}[/]")
-                    else:
-                        line.append(f"{day:2}")
+                line.append(self.build_day(is_cursor, has_tasks, day))
 
             lines.append(" ".join(line))
 
         return header + "\n".join(lines)
 
-    def render_all(self, tasks):
+    def build_day(self, is_cursor: bool, has_tasks: bool, day) -> str:
+        if is_cursor:
+            if has_tasks:
+                return f"[reverse orange italic]{day:2}[/]"
+            else:
+                return f"[reverse orange]{day:2}[/]"
+        else:
+            if has_tasks:
+                return f"[italic orange]{day:2}[/]"
+            else:
+                return f"{day:2}"
 
+    def render_all(self, tasks):
         self.main_calendar.update(
             self.build_month(self.cursor.year, self.cursor.month, tasks, True)
         )
@@ -91,9 +93,13 @@ class Calendar(Widget):
         prev_date = self.cursor - relativedelta(months=1)
         next_date = self.cursor + relativedelta(months=1)
 
-        self.prev_month.update(self.build_month(prev_date.year, prev_date.month, tasks))
+        self.prev_month_label.update(
+            self.build_month(prev_date.year, prev_date.month, tasks)
+        )
 
-        self.next_month.update(self.build_month(next_date.year, next_date.month, tasks))
+        self.next_month_label.update(
+            self.build_month(next_date.year, next_date.month, tasks)
+        )
 
     def move_cursor(self, delta):
         self.cursor += delta
@@ -112,12 +118,10 @@ class Calendar(Widget):
         self.move_cursor(timedelta(days=7))
 
     def action_prev_monta(self):
-        self.cursor -= relativedelta(months=1)
-        self.post_message(self.CursorMoved(self.cursor))
+        self.move_cursor(relativedelta(months=-1))
 
     def action_next_month(self):
-        self.cursor += relativedelta(months=1)
-        self.post_message(self.CursorMoved(self.cursor))
+        self.move_cursor(relativedelta(months=1))
 
     def action_go_today(self):
         self.cursor = date.today()

@@ -29,28 +29,33 @@ class CalendarApp(App):
 
     def __init__(self):
         super().__init__()
-        self.tasks: dict[date, list[str]] = self.load_data()
 
-        self.current_day = date.today()
+        self.tasks: dict[date, list[str]] = self.load_data()
+        self.cursor = date.today()  # represent the current day
 
     def compose(self) -> ComposeResult:
         self.todolist = Todolist(id="todolist")
         self.calendar = Calendar(id="calendar")
+
         yield Header()
         yield Horizontal(self.calendar, self.todolist)
         yield Footer()
 
     def on_mount(self):
-        self.calendar.focus()
+        # force flexoki theme by default
         self.theme = "flexoki"
 
-        tasks = self.tasks.get(self.current_day, [])
-        self.update_tasks(self.current_day, tasks)
+        tasks_for_widgets = self.tasks.get(self.cursor, [])
+        self.update_tasks(self.cursor, tasks_for_widgets)
+
+        self.calendar.focus()
 
     def get_data_dir(self) -> Path:
         data_dir = Path(user_data_dir("koolkal"))
         data_dir.mkdir(parents=True, exist_ok=True)
+
         save_file = "tasks.json"
+
         return data_dir / save_file
 
     def load_data(self):
@@ -73,9 +78,10 @@ class CalendarApp(App):
             json.dump(serializable, f, indent=2)
 
     def update_tasks(self, date, tasks):
-
         self.todolist.cursor = date
+
         self.todolist.render_tasks(tasks)
+
         self.calendar.render_all(self.tasks)
 
     def action_change_focus(self):
@@ -86,22 +92,24 @@ class CalendarApp(App):
 
     def action_save_quit(self):
         self.write_data(self.tasks)
+
         self.exit()
 
     def action_focus_input(self):
         self.todolist.focus_input()
 
     def on_calendar_cursor_moved(self, message: Calendar.CursorMoved):
-        self.current_day = message.cursor
-        tasks = self.tasks.get(self.current_day, [])
-        self.update_tasks(self.current_day, tasks)
+        self.cursor = message.cursor
+
+        tasks_for_widgets = self.tasks.get(self.cursor, [])
+        self.update_tasks(self.cursor, tasks_for_widgets)
 
     def on_todolist_task_added(self, message: Todolist.TaskAdded):
         self.tasks.setdefault(message.date, []).append(message.task)
 
-        tasks = self.tasks[message.date]
+        tasks_for_widgets = self.tasks[message.date]
+        self.update_tasks(message.date, tasks_for_widgets)
 
-        self.update_tasks(message.date, tasks)
         self.calendar.focus()
 
 

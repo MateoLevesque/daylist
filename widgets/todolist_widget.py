@@ -52,7 +52,6 @@ class Todolist(Widget):
             self.task_list.mount(item)
 
     def on_input_submitted(self, event: Input.Submitted):
-
         task = event.value.strip()
 
         if not task:
