@@ -7,6 +7,13 @@ from textual.widgets import Input, ListView, ListItem, Label
 from datetime import date
 
 
+class TaskList(ListView):
+    BINDINGS = [
+        Binding("j", "cursor_down", "Next task"),
+        Binding("k", "cursor_up", "Previous task"),
+    ]
+
+
 class Todolist(Widget):
     """Todolist widget"""
 
@@ -18,18 +25,13 @@ class Todolist(Widget):
 
     can_focus = True
 
-    BINDINGS = [
-        Binding("j", "next_task"),
-        Binding("k", "prev_task"),
-    ]
-
     def compose(self) -> ComposeResult:
         self.task_input = Input(
             placeholder="Add a task then press Enter...",
             id="task_input",
         )
 
-        self.task_list = ListView(id="task_list")
+        self.task_list = TaskList(id="task_list")
 
         yield self.task_input
         yield self.task_list
@@ -50,6 +52,10 @@ class Todolist(Widget):
 
         for item in items:
             self.task_list.mount(item)
+
+    def on_focus(self):
+        self.task_list.focus()
+        self.task_list.index = 0
 
     def on_input_submitted(self, event: Input.Submitted):
         task = event.value.strip()
