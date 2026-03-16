@@ -8,10 +8,26 @@ from datetime import date
 
 
 class TaskList(ListView):
+    class TaskDeleted(Message):
+        def __init__(self, index: int) -> None:
+            self.index = index
+            super().__init__()
+
     BINDINGS = [
         Binding("j", "cursor_down", "Next task"),
         Binding("k", "cursor_up", "Previous task"),
+        Binding("d", "delete_task", "Delete task"),
     ]
+
+    def action_delete_task(self):
+        if not self.highlighted_child:
+            return
+
+        index = self.index
+
+        self.remove_items([index])
+
+        self.post_message(self.TaskDeleted(index))
 
 
 class Todolist(Widget):

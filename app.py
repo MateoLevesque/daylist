@@ -1,3 +1,4 @@
+from os import posix_spawn
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer
 from textual.containers import Horizontal
@@ -10,7 +11,7 @@ import json
 from datetime import date
 
 from widgets.calendar_widget import Calendar
-from widgets.todolist_widget import Todolist
+from widgets.todolist_widget import TaskList, Todolist
 
 
 class CalendarApp(App):
@@ -24,7 +25,7 @@ class CalendarApp(App):
 
     BINDINGS = [
         Binding("q", "save_quit"),
-        Binding("v", "change_focus", "change focus"),
+        Binding("space", "change_focus", "change focus"),
         Binding("a", "focus_input", "add task"),
     ]
 
@@ -116,6 +117,20 @@ class CalendarApp(App):
         self.update_tasks(message.date, tasks_for_widgets)
 
         self.calendar.focus()
+
+    def on_task_list_task_deleted(self, message: TaskList.TaskDeleted):
+        index = message.index
+        tasks = self.tasks.get(self.cursor, [])
+
+        if len(tasks) <= 0:
+            self.update_tasks(self.cursor, tasks)
+            self.calendar.focus()
+            return
+
+        tasks.pop(index)
+        self.update_tasks(self.cursor, tasks)
+        if len(tasks) <= 0:
+            self.calendar.focus()
 
 
 if __name__ == "__main__":
