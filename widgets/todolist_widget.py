@@ -13,18 +13,26 @@ class TaskList(ListView):
             self.index = index
             super().__init__()
 
+    class EditingTask(Message):
+        def __init__(self, index: int) -> None:
+            self.index = index
+            super().__init__()
+
     BINDINGS = [
         Binding("j", "cursor_down", "Next task"),
         Binding("k", "cursor_up", "Previous task"),
         Binding("r", "remove_task", "Remove task"),
+        Binding("e", "edit_task", "Edit task"),
     ]
 
     def action_remove_task(self):
         if not self.highlighted_child:
             return
 
-        self.pop(self.index)
         self.post_message(self.TaskDeleted(self.index))
+
+    def action_edit_task(self):
+        self.post_message(self.EditingTask(self.index))
 
 
 class Todolist(Widget):
@@ -52,7 +60,7 @@ class Todolist(Widget):
     def on_mount(self):
         self.cursor = date.today()
 
-    def focus_input(self):
+    def focus_input(self, content: str = ""):
         self.task_input.focus()
 
     def render_tasks(self, tasks):

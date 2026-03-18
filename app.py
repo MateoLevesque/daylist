@@ -131,6 +131,9 @@ class CalendarApp(App):
         if len(tasks) <= 0:
             self.calendar.focus()
 
+    def on_task_list_editing_task(self, message: TaskList.EditingTask):
+        index = message.index
+
 
 if __name__ == "__main__":
     CalendarApp().run()
