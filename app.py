@@ -1,4 +1,3 @@
-from os import posix_spawn
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer
 from textual.containers import Horizontal

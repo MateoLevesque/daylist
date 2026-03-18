@@ -117,7 +117,7 @@ class Calendar(Widget):
     def action_next_week(self):
         self.move_cursor(timedelta(days=7))
 
-    def action_prev_monta(self):
+    def action_prev_month(self):
         self.move_cursor(relativedelta(months=-1))
 
     def action_next_month(self):
