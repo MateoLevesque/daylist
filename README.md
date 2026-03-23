@@ -2,6 +2,10 @@
 Daylist is a simple and easy to use daily task manager TUI with vim motions.
 The name is from the combinaison of *daily* and *list*.
 
+> [!NOTE]
+> This is still in early development and will likely change.
+
+
 ## Looks like this
 
 <img width="1878" height="1145" alt="image" src="https://github.com/user-attachments/assets/ebb32a3f-11bb-41e4-84fb-b2f80ca8d2e7" />
