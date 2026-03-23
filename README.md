@@ -6,7 +6,7 @@ The name is from the combinaison of *daily* and *list*.
 
 
 > [!TIP]
-> I'm actively looking for feeback on this project. If you have any features you'd like to be added or any tips to improve the code, the UX or anything, feel free to share it wth me.
+> I'm actively looking for feedback on this project. If you have any features you'd like to be added or any tips to improve the code, the UX or anything, feel free to share it with me.
 
 
 ## Main features
@@ -14,16 +14,14 @@ The name is from the combinaison of *daily* and *list*.
 - Move trough months with `JK`
 - Add task with `a`
 - Remove task with `r`
-
+- Edit task with `e`
 
 ## Futur features
-- edit tasks
 - mark tasks as done
 - add daily events
 - add weekly events
 - add monthly events
 - add yearly events
-
 
 ## Potential features I'd like to be included
 - stormy like weather display per day
