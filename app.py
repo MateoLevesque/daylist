@@ -121,6 +121,16 @@ class CalendarApp(App):
         index = message.index
         tasks = self.tasks.get(self.cursor, [])
 
+        self.remove_task(tasks, index)
+
+    def on_task_list_editing_task(self, message: TaskList.EditingTask):
+        index = message.index
+        tasks = self.tasks.get(self.cursor, [])
+        task = tasks[index]
+        self.remove_task(tasks, index)
+        self.todolist.focus_input(task)
+
+    def remove_task(self, tasks, index):
         if len(tasks) <= 0:
             self.update_tasks(self.cursor, tasks)
             self.calendar.focus()
@@ -130,11 +140,6 @@ class CalendarApp(App):
         self.update_tasks(self.cursor, tasks)
         if len(tasks) <= 0:
             self.calendar.focus()
-
-    def on_task_list_editing_task(self, message: TaskList.EditingTask):
-        index = message.index
-        tasks = self.tasks.get(self.cursor, [])
-        task = tasks[index]
 
 
 if __name__ == "__main__":
