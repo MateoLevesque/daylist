@@ -133,6 +133,8 @@ class CalendarApp(App):
 
     def on_task_list_editing_task(self, message: TaskList.EditingTask):
         index = message.index
+        tasks = self.tasks.get(self.cursor, [])
+        task = tasks[index]
 
 
 if __name__ == "__main__":

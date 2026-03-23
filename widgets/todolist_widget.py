@@ -62,6 +62,7 @@ class Todolist(Widget):
 
     def focus_input(self, content: str = ""):
         self.task_input.focus()
+        self.task_input.value = content
 
     def render_tasks(self, tasks):
         index = self.task_list.index
