@@ -8,13 +8,13 @@ The name is from the combinaison of *daily* and *list*.
 ## Main features
 - Simple month view where you can move trough the days using `hjkl`.
 - Move trough months with `JK`
-- Add tasks per day with `a`
+- Add task with `a`
+- Remove task with `r`
 
 
 ## Futur features
 - edit tasks
 - mark tasks as done
-- delete tasks
 - add daily events
 - add weekly events
 - add monthly events
