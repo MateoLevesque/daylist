@@ -5,7 +5,6 @@ The name is from the combinaison of *daily* and *list*.
 > [!NOTE]
 > This is still in early development and will likely change.
 
-
 ## Looks like this
 
 <img width="1891" height="1146" alt="image" src="https://github.com/user-attachments/assets/d2407c82-a239-4cdb-9f68-4fd5fc120783" />
