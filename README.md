@@ -24,8 +24,9 @@ The name is from the combinaison of *daily* and *list*.
 - mark tasks as done
 - add weekly events
 - add monthly events
-- add yearly events
-- saving and syncing across devices
+- add yearly events saving and syncing across devices
+- find a specific day with `f`
+- find specific task with `F`
 
 ## Potential features
 - daily tasks (useful for recurring group of tasks)
